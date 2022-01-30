@@ -19,6 +19,8 @@ from helper import (
     get_total_flight_time,
     error_labels_table,
     get_event_parser,
+    get_drone_name,
+    get_drotek_uuid,
 )
 
 # pylint: disable=consider-using-enumerate,too-many-statements
@@ -273,18 +275,14 @@ SDLOG_UTC_OFFSET: {}""".format(
 
     table_text_left.append(("", ""))  # spacing
 
-    short_uuid = sys_uuid[12:]
-    drotek_uuid = "".join(
-        reversed([short_uuid[i : i + 2] for i in range(0, len(short_uuid), 2)])
-    ).upper()
+    drotek_uuid = get_drotek_uuid(escape(ulog.msg_info_dict["sys_uuid"]))
     table_text_left.append(("Drotek UUID", drotek_uuid))
 
-    with open(os.path.dirname(os.path.realpath(__file__)) + "/alias.yml") as f:
-        alias_db = yaml.safe_load(f)
+    drone_name = get_drone_name(drotek_uuid)
 
-        if drotek_uuid in alias_db["alias"]:
-            table_text_left.append(("", ""))  # spacing
-            table_text_left.append(("Drone name", alias_db["alias"][drotek_uuid]))
+    if len(drone_name):
+        table_text_left.append(("", ""))  # spacing
+        table_text_left.append(("Drone name", drone_name))
 
     table_text_left.append(("", ""))  # spacing
 
