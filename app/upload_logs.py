@@ -35,22 +35,22 @@ def get_arguments():
         help="The directory to look for ulog file.",
     )
     parser.add_argument(
-        "--db-info-api",
+        "--server",
         type=str,
-        default="https://review.px4.io/dbinfo",
-        help="The url at which the server provides the dbinfo API.",
+        default="http://localhost:5006",
+        help="The url of the server",
     )
     parser.add_argument(
-        "--upload-api",
-        type=str,
-        default="https://review.px4.io/dbinfo",
-        help="The url at which the server provides the upload API.",
-    )
-    parser.add_argument(
-        "--source",
+        "--name",
         default=None,
         type=str,
-        help='The source of the log upload. e.g. ["webui", "CI"]',
+        help="Name of the show",
+    )
+    parser.add_argument(
+        "--show_id",
+        default=None,
+        type=str,
+        help="Id of the show",
     )
     return parser.parse_args()
 
@@ -61,50 +61,61 @@ def main():
 
     try:
         # the db_info_api sends a json file with a list of all public database entries
-        db_entries_list = requests.get(url=args.db_info_api).json()
-    except:
+        db_entries_list = requests.get(url=args.server + "/dbinfo").json()
+
+        if not args.show_id:
+            values = {"name": args.name, "place": "jn", "datetime": "12345567789"}
+            url = args.server + "/show"
+            r = requests.post(url=url, data=values).json()
+            show_id = r["id"]
+        else:
+            show_id = args.show_id
+
+    except Exception as e:
         print("Server request failed.")
+        print(e)
         raise
 
     if args.print_entries:
         # only print the json output without downloading logs
         print(json.dumps(db_entries_list, indent=4, sort_keys=True))
+        return
 
-    else:
-        # find already existing logs in download folder
-        logfile_pattern = os.path.join(os.path.abspath(args.directory), "*.ulg")
-        logfiles = glob.glob(os.path.join(os.getcwd(), logfile_pattern))
-        logids = [os.path.basename(f) for f in logfiles]
+    # find already existing logs in download folder
+    logfile_pattern = os.path.join(os.path.abspath(args.directory), "*.ulg")
+    logfiles = glob.glob(os.path.join(os.getcwd(), logfile_pattern))
+    logids = [os.path.basename(f) for f in logfiles]
 
-        # sort list order to first download the newest log files
-        db_entries_list = sorted(
-            db_entries_list,
-            key=lambda x: datetime.datetime.strptime(x["log_date"], "%Y-%m-%d"),
-            reverse=True,
-        )
+    # sort list order to first download the newest log files
+    db_entries_list = sorted(
+        db_entries_list,
+        key=lambda x: datetime.datetime.strptime(x["log_date"], "%Y-%m-%d"),
+        reverse=True,
+    )
 
-        already_uploaded_file = [f["original_filename"] for f in db_entries_list]
+    already_uploaded_file = [f["original_filename"] for f in db_entries_list]
 
-        for filename, logfile in zip(logids, logfiles):
-            if filename in already_uploaded_file:
-                print(f"[skip] Already uploaded : {filename}")
-                continue
+    for filename, logfile in zip(logids, logfiles):
+        if filename in already_uploaded_file:
+            print(f"[skip] Already uploaded : {filename}")
+            continue
 
-            file = {"filearg": (filename, open(logfile, "rb"))}
-            values = {
-                "source": "uploader",
-                "type": "simple_log",
-                "description": "",
-                "email": "",
-                "allowForAnalysis": "true",
-            }
+        file = {"filearg": (filename, open(logfile, "rb"))}
+        values = {
+            "shows_id": show_id,
+            "source": "uploader",
+            "type": "simple_log",
+            "description": "",
+            "email": "",
+            "allowForAnalysis": "true",
+        }
 
-            r = requests.post(url=args.upload_api, files=file, data=values)
+        r = requests.post(url=args.server + "upload", files=file, data=values)
 
-            if r.status_code == 200:
-                data = json.loads(r.text)
-                url = data["url"]
-                print(f"Uploaded : {logfile}, url: {url}")
+        if r.status_code == 200:
+            data = json.loads(r.text)
+            url = data["url"]
+            print(f"Uploaded : {logfile}, url: {url}")
 
 
 if __name__ == "__main__":

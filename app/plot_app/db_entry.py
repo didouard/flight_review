@@ -78,6 +78,9 @@ class DBDataGenerated:
         self.flight_modes = set()
         self.vehicle_uuid = ""
         self.flight_mode_durations = []  # list of tuples of (mode, duration sec)
+        self.vibration_state = "ok"
+        self.gps_type = "fix"
+        self.quick_discharge = "ok"
         super().__init__()
 
     def flight_mode_durations_str(self):
@@ -152,6 +155,52 @@ class DBDataGenerated:
             # Ignore. Eg. if topic not found
             pass
 
+        def get_vibration_state(ulog):
+            data = ulog.data_list
+            elem = [elem for elem in data if elem.name == "estimator_status"][0]
+            vibe = elem.data.get("vibe[2]")
+
+            vibration_state = "ok"
+            for v in vibe:
+                if not vibration_state == "warning" and v >= 0.03:
+                    vibration_state = "warning"
+                elif v >= 0.04:
+                    return "critical"
+            return vibration_state
+
+        def get_gps_type(ulog):
+            data = ulog.data_list
+            elem = [elem for elem in data if elem.name == "vehicle_gps_position"][0]
+            type = elem.data.get("fix_type")
+
+            enum = {
+                0: "none",
+                1: "gps",
+                2: "gps",
+                3: "gps",
+                4: "3d",
+                5: "float",
+                6: "fix",
+            }
+
+            fix_type = type[0]
+            for t in type:
+                fix_type = min(t, fix_type)
+            return enum.get(fix_type)
+
+        def get_quick_discharge(ulog):
+            data = ulog.data_list
+            elem = [elem for elem in data if elem.name == "battery_status"][0]
+            type = elem.data.get("voltage_filtered_v")
+
+            for i in range(min(30, len(type))):
+                if type[i] <= 6:
+                    return "critical"
+            return "ok"
+
+        obj.vibration_state = get_vibration_state(ulog)
+        obj.gps_type = get_gps_type(ulog)
+        obj.quick_discharge = get_quick_discharge(ulog)
         return obj
 
     def to_json_dict(self):
@@ -168,6 +217,9 @@ class DBDataGenerated:
         jsondict["flight_modes"] = list(self.flight_modes)
         jsondict["vehicle_uuid"] = self.vehicle_uuid
         jsondict["flight_mode_durations"] = self.flight_mode_durations
+        jsondict["vibration_state"] = self.vibration_state
+        jsondict["gps_type"] = self.gps_type
+        jsondict["quick_discharge"] = self.quick_discharge
         return jsondict
 
 

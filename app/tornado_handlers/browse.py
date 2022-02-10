@@ -39,6 +39,7 @@ class BrowseDataRetrievalHandler(tornado.web.RequestHandler):
         data_start = int(self.get_argument("start"))
         data_length = int(self.get_argument("length"))
         draw_counter = int(self.get_argument("draw"))
+        show_id = self.get_argument("show_id", default="")
 
         json_output = dict()
         json_output["draw"] = draw_counter
@@ -51,23 +52,22 @@ class BrowseDataRetrievalHandler(tornado.web.RequestHandler):
 
         ordering_col = [
             "",  # table row number
-            "Logs.Date",
-            "",  # Overview - img
-            "Logs.Description",
-            "LogsGenerated.MavType",
-            "",  # Airframe - not from DB
-            "LogsGenerated.Hardware",
-            "LogsGenerated.Software",
-            "LogsGenerated.Duration",
             "LogsGenerated.StartTime",
-            "",  # Rating
+            "Vehicle.Name",
+            "LogsGenerated.Duration",
             "LogsGenerated.NumLoggedErrors",
-            "",  # FlightModes
+            "LogsGenerated.VibrationState",
+            "LogsGenerated.GpsType",
+            "LogsGenerated.QuickDischarge",
         ]
         if ordering_col[order_ind] != "":
             sql_order = " ORDER BY " + ordering_col[order_ind]
             if order_dir == "desc":
                 sql_order += " DESC"
+
+        sql_show_id = ""
+        if show_id:
+            sql_show_id = "AND show_id = " + show_id + " "
 
         cur.execute(
             "SELECT Logs.Id, Logs.Date, "
@@ -78,7 +78,9 @@ class BrowseDataRetrievalHandler(tornado.web.RequestHandler):
             "FROM Logs "
             "   LEFT JOIN LogsGenerated on Logs.Id=LogsGenerated.Id "
             "   LEFT JOIN Vehicle on Logs.uuid=Vehicle.UUID "
-            'WHERE Logs.Public = 1 AND NOT Logs.Source = "CI" ' + sql_order
+            'WHERE Logs.Public = 1 AND NOT Logs.Source = "CI" '
+            + sql_show_id
+            + sql_order
         )
 
         # pylint: disable=invalid-name
@@ -123,7 +125,10 @@ class BrowseDataRetrievalHandler(tornado.web.RequestHandler):
                     if len(x) > 0
                 ]
                 db_data.start_time_utc = db_tuple[19]
-                db_data.name = db_tuple[20]
+                db_data.vibration_state = db_tuple[20]
+                db_data.gps_type = db_tuple[21]
+                db_data.quick_discharge = db_tuple[22]
+                db_data.name = db_tuple[23]
 
             # bring it into displayable form
             ver_sw = db_data.ver_sw
@@ -179,30 +184,24 @@ class BrowseDataRetrievalHandler(tornado.web.RequestHandler):
             if db_data.vehicle_uuid is not None:
                 search_only_columns.append(db_data.vehicle_uuid)
 
-            image_col = '<div class="no_map_overview"> Not rendered / No GPS </div>'
-            image_filename = os.path.join(get_overview_img_filepath(), log_id + ".png")
-            if os.path.exists(image_filename):
-                image_col = '<img class="map_overview" src="/overview_img/'
-                image_col += (
-                    log_id + '.png" alt="Overview Image Load Failed" height=50/>'
-                )
+            # image_col = '<div class="no_map_overview"> Not rendered / No GPS </div>'
+            # image_filename = os.path.join(get_overview_img_filepath(), log_id + ".png")
+            # if os.path.exists(image_filename):
+            #    image_col = '<img class="map_overview" src="/overview_img/'
+            #    image_col += (
+            #        log_id + '.png" alt="Overview Image Load Failed" height=50/>'
+            #    )
 
             return Columns(
                 [
                     counter,
-                    '<a href="plot_app?log=' + log_id + '">' + log_date + "</a>",
+                    '<a href="plot_app?log=' + log_id + '">' + start_time_str + "</a>",
                     db_data.name,
-                    image_col,
-                    description,
-                    db_data.mav_type,
-                    airframe,
-                    db_data.sys_hw,
-                    ver_sw,
                     duration_str,
-                    start_time_str,
-                    db_data.rating_str(),
                     db_data.num_logged_errors,
-                    flight_modes,
+                    db_data.vibration_state,
+                    db_data.gps_type,
+                    db_data.quick_discharge,
                 ],
                 search_only_columns,
             )

@@ -289,6 +289,9 @@ class UploadHandler(TornadoRequestHandlerBase):
 
                 con.commit()
 
+                if ulog is not None:
+                    generate_db_data_from_log_file(log_id, con)
+
                 url = "/plot_app?log=" + log_id
                 full_plot_url = get_http_protocol() + "://" + get_domain_name() + url
                 print(full_plot_url)

@@ -120,6 +120,9 @@ with con:
             "UUID TEXT, "  # vehicle UUID (sys_uuid in log)
             "FlightModeDurations TEXT, "  # comma-separated list of <flight_mode_int>:<duration_sec>
             "StartTime INT, "  # UTC Timestap from GPS log (useful when uploading multiple logs)
+            "VibrationState TEXT, "
+            "GpsType TEXT, "
+            "QuickDischarge TEXT, "
             "CONSTRAINT Id_PK PRIMARY KEY (Id))"
         )
 

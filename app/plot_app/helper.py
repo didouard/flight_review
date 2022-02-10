@@ -89,9 +89,10 @@ def get_log_filename(log_id):
     """return the ulog file name from a log id in the form:
     xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     """
-    if _check_log_id_is_filename():
-        return log_id
-    return os.path.join(get_log_filepath(), log_id + ".ulg")
+    # if _check_log_id_is_filename():
+    #   return log_id
+    # return os.path.join(get_log_filepath(), log_id + ".ulg")
+    return os.path.join(get_log_filepath(), log_id)
 
 
 __last_failed_downloads = (
@@ -460,10 +461,10 @@ def get_total_flight_time(ulog):
     ):
         high = ulog.initial_parameters["LND_FLIGHT_T_HI"]
         if high < 0:  # both are signed int32
-            high += 2 ** 32
+            high += 2**32
         low = ulog.initial_parameters["LND_FLIGHT_T_LO"]
         if low < 0:
-            low += 2 ** 32
+            low += 2**32
         flight_time_s = ((high << 32) | low) / 1e6
         return flight_time_s
     return None

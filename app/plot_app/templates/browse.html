@@ -16,19 +16,13 @@
     <thead>
         <tr>
             <th>#</th>
-            <th>Upload Date</th>
-            <th>Name</th>
-            <th>Overview</th>
-            <th>Description</th>
-            <th>Type</th>
-            <th>Airframe</th>
-            <th>Hardware</th>
-            <th>Software</th>
-            <th>Duration</th>
             <th>Start Time</th>
-            <th>Rating</th>
+            <th>Name</th>
+            <th>Duration</th>
             <th>Errors</th>
-            <th>Flight Modes</th>
+            <th>Vibration state</th>
+            <th>Gps Type</th>
+            <th>Quick Discharge</th>
         </tr>
     </thead>
     <tbody>
@@ -59,22 +53,17 @@
         {% endif %}
         "order": [[1, 'desc']],
         "ordering": true,
-        "lengthMenu": [10, 25, 50, 75, 100],
+        "lengthMenu": [100, 25, 50, 75, 10],
 
         "columns": [
         { "orderable": false }, /* row number */
-        null,
-        { "orderable": false }, /* overview */
-        { "width": "13%" }, /* description */
-        null,
-        { "orderable": false },/* airframe - not from DB */
-        null,
-        null,
-        null,
-        { "width": "10%" }, /* start time */
-        { "orderable": false, "width": "13%" }, /* rating */
-        null,
-        { "orderable": false, "width": "11%" } /* flight modes */
+        { "width": "20%" }, /* start time */
+        { "orderable": true },
+        { "orderable": true },
+        { "orderable": true },
+        { "orderable": true },
+        { "orderable": true },
+        { "orderable": true }
     ],
 
         "language": {
